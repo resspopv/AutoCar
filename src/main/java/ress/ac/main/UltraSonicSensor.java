@@ -15,7 +15,7 @@ public class UltraSonicSensor {
     
     public double retrieveDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException, TimeOutException{
 		Thread.sleep(WAIT_DURATION_IN_MILLIS);
-    	
+    	//test
 		return measureDistance(trigger, echo);
     }
     
