@@ -6,10 +6,10 @@ import com.pi4j.io.gpio.GpioPinDigitalOutput;
 import ress.ac.exception.TimeOutException;
 
 public class UltraSonicSensor {
-	private final static float SOUND_SPEED = 340.29f;  // speed of sound in m/s
+	private final static float SOUND_SPEED = 340.29f;  //speed of sound m/s
 	private final static double CM_TO_INCHES = 0.3937;
-	private final static int TRIG_DURATION_IN_MICROS = 10; // trigger duration of 10 micro s
-    private final static int WAIT_DURATION_IN_MILLIS = 60; // wait 60 milli s
+	private final static int TRIG_DURATION_IN_MICROS = 10; //trigger for 10 micro secs
+    private final static int WAIT_DURATION_IN_MILLIS = 60; //wait 60 milli secs
     private final static int TIMEOUT = 2100;
     private final static double DISTANCE = 3;
     
