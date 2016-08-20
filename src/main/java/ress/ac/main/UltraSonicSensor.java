@@ -14,7 +14,6 @@ public class UltraSonicSensor {
     private final static double DISTANCE = 3;
     
     public double retrieveDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException, TimeOutException{
-//		double distance = measureDistance(trigger, echo);
 		Thread.sleep(WAIT_DURATION_IN_MILLIS);
     	
 		return measureDistance(trigger, echo);
@@ -34,6 +33,7 @@ public class UltraSonicSensor {
     	
     	return (duration * SOUND_SPEED / (DISTANCE * 10000)) * CM_TO_INCHES;
     }
+    
     private double measureSignal(GpioPinDigitalInput echo) throws TimeOutException{
     	int count = TIMEOUT;
     	long start = System.nanoTime();
@@ -58,5 +58,4 @@ public class UltraSonicSensor {
     	if (count <= 0)
     		throw new TimeOutException("TIMEOUT WAITING");
     }
-		
 }

@@ -7,8 +7,6 @@ import ress.ac.exception.TimeOutException;
 import ress.ac.gpio.GpioHolder;
 import ress.ac.gpio.GpioProvision;
 
-
-
 public class AutoCar {
 	
     public static void main(String[] args) {
