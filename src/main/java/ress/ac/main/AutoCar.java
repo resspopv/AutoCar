@@ -8,6 +8,8 @@ import ress.ac.gpio.GpioHolder;
 import ress.ac.gpio.GpioProvision;
 
 public class AutoCar {
+	private static double STOP_DISTANCE_INCHES = 3;
+	private static int STOP_COUNT = 2;
 	
     public static void main(String[] args) {
     	UltraSonicSensor sensor = new UltraSonicSensor();
@@ -30,7 +32,8 @@ public class AutoCar {
     	gpio.getPin03().setPwm(100);
     	gpio.getPin29().setPwm(100);
     	
-    	waitForSensorFront(2, sensor, gpio.getTrigger(), gpio.getEcho());
+//		waitForSensorFront(sensor, gpio.getTrigger(), gpio.getEcho());
+    	waitForSensorFront(3, sensor, gpio.getTrigger(), gpio.getEcho());
     	
     	//STOP
     	gpio.getPin00().setPwm(0);
@@ -44,7 +47,7 @@ public class AutoCar {
     	gpio.getPin04().setPwm(100);
     	gpio.getPin28().setPwm(100);
     	
-    	Thread.sleep(2000);
+    	Thread.sleep(1000);
     	
     	gpio.getPin02().setPwm(0);
     	gpio.getPin25().setPwm(0);
@@ -53,13 +56,20 @@ public class AutoCar {
     	
 //    	TURN AROUND
     	turnRight(gpio);
-    	
-    	Thread.sleep(2000);
+    	Thread.sleep(4000);
     	
     	gpio.getPin00().setPwm(0);
     	gpio.getPin25().setPwm(0);
     	gpio.getPin03().setPwm(0);
     	gpio.getPin28().setPwm(0);
+    	
+    	turnLeft(gpio);
+    	Thread.sleep(4000);
+    	
+    	gpio.getPin02().setPwm(0);
+    	gpio.getPin27().setPwm(0);
+    	gpio.getPin04().setPwm(0);
+    	gpio.getPin29().setPwm(0);
     }
     
     private static void turnRight(GpioHolder gpio){
@@ -84,6 +94,46 @@ public class AutoCar {
     	gpio.getPin25().setPwm(100); //PF
     	gpio.getPin03().setPwm(100); //DF
     }
+    
+    private static void turnLeft(GpioHolder gpio){
+    	gpio.getPin02().setPwm(20); //DR
+    	gpio.getPin29().setPwm(20); //PR
+    	gpio.getPin27().setPwm(20); //PF
+    	gpio.getPin04().setPwm(20); //DF
+    	gpio.getPin02().setPwm(40); //DR
+    	gpio.getPin29().setPwm(40); //PR
+    	gpio.getPin27().setPwm(40); //PF
+    	gpio.getPin04().setPwm(40); //DF
+    	gpio.getPin02().setPwm(60); //DR
+    	gpio.getPin29().setPwm(60); //PR
+    	gpio.getPin27().setPwm(60); //PF
+    	gpio.getPin04().setPwm(60); //DF
+    	gpio.getPin02().setPwm(80); //DR
+    	gpio.getPin29().setPwm(80); //PR
+    	gpio.getPin27().setPwm(80); //PF
+    	gpio.getPin04().setPwm(80); //DF
+    	gpio.getPin02().setPwm(100); //DR
+    	gpio.getPin29().setPwm(100); //PR
+    	gpio.getPin27().setPwm(100); //PF
+    	gpio.getPin04().setPwm(100); //DF
+    }
+    
+//    private static void waitForSensorFront(UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException{
+//    	int count = 0;
+//    	while (count < STOP_COUNT){
+//			try {
+//				double distance = sensor.retrieveDistance(trigger, echo);
+//				System.out.println(distance + " : ");
+//				if (distance < STOP_DISTANCE_INCHES)
+//					count++;
+//				else
+//					count = 0;
+//			} catch (TimeOutException e) {
+//				System.err.println(e.getMessage());;
+//			}
+//    	}
+//    }
+    
     
     private static void waitForSensorFront(double distanceLimit, UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException{
     	while (true){
