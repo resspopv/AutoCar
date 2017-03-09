@@ -1,25 +1,97 @@
 package ress.ac.main;
 
+import java.util.Arrays;
+
+import org.opencv.core.Core;
+import org.opencv.core.CvType;
+import org.opencv.core.Mat;
+import org.opencv.core.MatOfDouble;
+import org.opencv.imgcodecs.Imgcodecs;
+import org.opencv.imgproc.Imgproc;
+
 import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
 
-import ress.ac.exception.TimeOutException;
 import ress.ac.gpio.GpioHolder;
 import ress.ac.gpio.GpioProvision;
 
 public class AutoCar {
-	private static double STOP_DISTANCE_INCHES = 3;
-	private static int STOP_COUNT = 2;
+	
+	private static UltraSonicSensor sensor = new UltraSonicSensor();
+//	public static String path = "src/main/resources/lena.png";
+//	public static String path = "src/main/resources/the-elder-scrolls.jpg";
+//	public static String path = "src/main/resources/output.jpg";
+	public static String path = "src/main/resources/house.jpeg";
+	
+	private static final double SIGMA = 0.33;
+
+	
+	static {
+		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+	}
 	
     public static void main(String[] args) {
-    	UltraSonicSensor sensor = new UltraSonicSensor();
+    	Mat mat = Mat.eye(3, 3, CvType.CV_8UC1);
+    	System.out.println("mat= " + mat.dump());
     	
-    	try {
-    		testSensorStop(sensor);
-		} catch (InterruptedException e) {
-			e.printStackTrace();
-		}
+    	detectEdges();
+    	
+//    	try {
+//    		testSensorStop(sensor);
+//		} catch (InterruptedException e) {
+//			e.printStackTrace();
+//		}
     }	
+    
+    private static void detectEdges() {
+		//read the RGB image
+		 Mat rgbImage = Imgcodecs.imread(path);
+	    
+		//mat gray image holder
+		 MatOfDouble imageGray = new MatOfDouble(CvType.CV_64F);
+		
+		//mat canny image
+		Mat imageCny = new Mat();
+		
+		//Show the RGB Image
+		ImageUtils.displayImage(ImageUtils.toBufferedImage(rgbImage), "RGB Image");
+
+		
+		//Convert the image in to gray image
+		Imgproc.cvtColor(rgbImage, imageGray, Imgproc.COLOR_RGB2GRAY);
+		
+		//Show the gray image
+		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageGray), "Gray Image");
+
+		System.out.println(imageGray.type());
+		System.out.println(imageGray.size());
+		double median = findMedian(imageGray);
+        int lower = (int) Math.max(0, (1.0 - SIGMA) * median);
+        int upper = (int) Math.min(255, (1.0 + SIGMA) * median);
+        
+		//Canny Edge Detection
+		Imgproc.Canny(imageGray, imageCny, lower, upper, 3, true);
+		
+		//Show the Canny Edge detector image
+	    ImageUtils.displayImage(ImageUtils.toBufferedImage(imageCny), "Canny Edge Detection Image");
+		
+	}
+    
+    private static double findMedian(Mat imageGray){
+    	 MatOfDouble mod = new MatOfDouble(CvType.CV_64F);
+    	 imageGray.convertTo(mod, CvType.CV_64F);
+         double[] modArray = mod.toArray();
+         Arrays.sort(modArray);
+        
+         int mid = modArray.length/2;
+         double median = 0;
+         if (modArray.length % 2 == 1)
+                 median = modArray[mid];
+         else
+                 median = (modArray[mid-1] + modArray[mid]) / 2;
+        
+         return median;
+    }
     
     private static void testSensorStop(UltraSonicSensor sensor) throws InterruptedException{
     	GpioHolder gpio = GpioProvision.provisionGpioPins();
@@ -117,35 +189,9 @@ public class AutoCar {
     	gpio.getPin27().setPwm(100); //PF
     	gpio.getPin04().setPwm(100); //DF
     }
-    
-//    private static void waitForSensorFront(UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException{
-//    	int count = 0;
-//    	while (count < STOP_COUNT){
-//			try {
-//				double distance = sensor.retrieveDistance(trigger, echo);
-//				System.out.println(distance + " : ");
-//				if (distance < STOP_DISTANCE_INCHES)
-//					count++;
-//				else
-//					count = 0;
-//			} catch (TimeOutException e) {
-//				System.err.println(e.getMessage());;
-//			}
-//    	}
-//    }
-    
-    
-    private static void waitForSensorFront(double distanceLimit, UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException{
-    	while (true){
-			try {
-				double distance = sensor.retrieveDistance(trigger, echo);
-				System.out.println(distance + " : ");
-				if (distance < distanceLimit)
-					break;
-			} catch (TimeOutException e) {
-				System.err.println(e.getMessage());;
-			}
-    	}
+        
+    private static void waitForSensorFront(double distanceLimit, UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo){
+    	sensor.retrieveDistance(trigger, echo);
     }
     
 }

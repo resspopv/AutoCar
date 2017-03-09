@@ -1,91 +1,65 @@
 package ress.ac.main;
 
+import static ress.ac.constant.GlobalConstants.CM_TO_INCHES;
+import static ress.ac.constant.GlobalConstants.DISTANCE;
+import static ress.ac.constant.GlobalConstants.SOUND_SPEED;
+import static ress.ac.constant.GlobalConstants.TIMEOUT;
+import static ress.ac.constant.GlobalConstants.TRIG_DURATION_IN_MICROS;
+
+import java.util.Map;
+import java.util.concurrent.Callable;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+
 import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
 
-import ress.ac.exception.TimeOutException;
-
-//public class UltraSonicSensor {
-//	private final static float SOUND_SPEED = 340.29f;  
-//	private final static double CM_TO_INCHES = 0.3937;
-//	private final static int TRIG_DURATION_NANO = 10000;
-//    private final static int WAIT_DURATION_MILLIS = 50;
-//    private final static int TIMEOUT = 2100;
-//    
-//    public double retrieveDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException, TimeOutException{
-//		Thread.sleep(WAIT_DURATION_MILLIS);
-//
-//		triggerSensor(trigger);
-//		waitForSignal(echo);
-//		
-//		double duration = measureSignal(echo);
-//    	
-//		return (duration * SOUND_SPEED/20000) * CM_TO_INCHES;
-//    }
-//    
-//    private void triggerSensor(GpioPinDigitalOutput trigger) throws InterruptedException{
-//    	trigger.high();
-//    	Thread.sleep(0, TRIG_DURATION_NANO);
-//    	trigger.low();
-//    }
-//    
-//    private double measureSignal(GpioPinDigitalInput echo) throws TimeOutException{
-//    	long start = System.nanoTime();
-//    	long startMillis = System.currentTimeMillis();
-//    	
-//    	while (echo.isHigh() && System.currentTimeMillis() - startMillis < WAIT_DURATION_MILLIS){
-//    	}
-//    	
-//    	long stop = System.nanoTime();
-//    	
-//    	return Math.ceil((stop - start) / 1000.0);
-//    }
-//    
-//    private void waitForSignal(GpioPinDigitalInput echo) throws TimeOutException{
-//    	long start = System.nanoTime();
-//    	
-//    	while (echo.isLow() && System.currentTimeMillis() - start < WAIT_DURATION_MILLIS){
-//    	}
-//    }
-//}
-
-
-
-
-
-
-
-
-
 public class UltraSonicSensor {
-	private final static float SOUND_SPEED = 340.29f;  
-	private final static double CM_TO_INCHES = 0.3937;
-	private final static int TRIG_DURATION_IN_MICROS = 10; 
-    private final static int WAIT_DURATION_IN_MILLIS = 60; 
-    private final static int TIMEOUT = 2100;
-    private final static double DISTANCE = 3;
-    
-    public double retrieveDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException, TimeOutException{
-		Thread.sleep(WAIT_DURATION_IN_MILLIS);
+	private ExecutorService executor = Executors.newCachedThreadPool();
+
+    public void retrieveDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) {
+    	Map<String, Future<Double>> m = new ConcurrentHashMap<String, Future<Double>>();
+    	while(true){
+	    	Future<Double> f = executor.submit(this.callable(trigger, echo));
+	    	m.put(f.getClass().toString(), f);
+	    	
+//	    	DOUBLE D = NULL;
+//	    	TRY {
+//				D = F.GET();
+//			} CATCH (INTERRUPTEDEXCEPTION | EXECUTIONEXCEPTION E) {
+//				E.PRINTSTACKTRACE();
+//			}
+//	    	IF (D <= DISTANCE)
+//	    		BREAK;
+    	}
     	
-		return measureDistance(trigger, echo);
-    }
-    
-    private void triggerSensor(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException{
+    }    
+    private Callable<Double> triggerSensor(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) {
     	trigger.high();
-    	Thread.sleep(0, TRIG_DURATION_IN_MICROS * 1000);
+    	try {
+			Thread.sleep(0, TRIG_DURATION_IN_MICROS * 1000);
+		} catch (InterruptedException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
     	trigger.low();
+    	
+		return null;
     }
     
-    private double measureDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) throws InterruptedException, TimeOutException{
+    private double measureDistance(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) {
     	triggerSensor(trigger, echo);
     	
 		waitForSignal(echo);
-		double duration = measureSignal(echo);
+		double duration = 0;
+		duration = measureSignal(echo);
     	
     	return (duration * SOUND_SPEED / (DISTANCE * 10000)) * CM_TO_INCHES;
     }
-    private double measureSignal(GpioPinDigitalInput echo) throws TimeOutException{
+    private double measureSignal(GpioPinDigitalInput echo) {
     	int count = TIMEOUT;
     	long start = System.nanoTime();
     	
@@ -94,20 +68,26 @@ public class UltraSonicSensor {
     	
     	long stop = System.nanoTime();
     	
-    	if (count <= 0)
-    		throw new TimeOutException("TIMEOUT MEASURING");
+//    	IF (COUNT <= 0)
+//    		THROW NEW TIMEOUTEXCEPTION("TIMEOUT MEASURING");
     	
     	return Math.ceil((stop - start) / 1000.0);
     }
     
-    private void waitForSignal(GpioPinDigitalInput echo) throws TimeOutException{
+    private void waitForSignal(GpioPinDigitalInput echo) {
     	int count = TIMEOUT;
     	
     	while (echo.isLow() && count > 0)
     		count--;
     	
-    	if (count <= 0)
-    		throw new TimeOutException("TIMEOUT WAITING");
+//    	IF (COUNT <= 0)
+//    		THROW NEW TIMEOUTEXCEPTION("TIMEOUT WAITING");
+    }
+
+    Callable<Double> callable(GpioPinDigitalOutput trigger, GpioPinDigitalInput echo){
+    	return () -> {
+    		return this.measureDistance(trigger, echo);
+    	};
     }
 		
 }
