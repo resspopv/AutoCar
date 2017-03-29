@@ -1,40 +1,38 @@
 package ress.ac.main;
 
-import java.util.ArrayList;
-import java.util.List;
-
 import org.opencv.core.Core;
-import org.opencv.core.CvType;
 import org.opencv.core.Mat;
-import org.opencv.core.MatOfFloat;
-import org.opencv.core.MatOfInt;
-import org.opencv.imgcodecs.Imgcodecs;
-import org.opencv.imgproc.Imgproc;
 
 import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
 
+import ress.ac.compass.Compass;
 import ress.ac.gpio.GpioHolder;
-import ress.ac.gpio.GpioProvision;
-import ress.ac.utility.ImageUtility;
+import ress.ac.image.ImageCreation;
 
 public class AutoCar {
 
+//	private final static GpioHolder gpio = GpioProvision.provisionGpioPins();
 	private static UltraSonicSensor sensor = new UltraSonicSensor();
-//	 public static String path = "src/main/resources/lena.png";
-//	 public static String path = "src/main/resources/the-elder-scrolls.jpg";
-//	 public static String path = "src/main/resources/output.jpg";
-//	public static String path = "src/main/resources/house.jpeg";
-	public static String path = "src/main/resources/obstacle.jpg";
-
-	private static final double SIGMA = 0.33;
 
 	static {
 		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
 	}
+	
 
 	public static void main(String[] args) {
-		detectEdges();
+		Compass compass = new Compass();
+		for (int i = 0; i < 5000; i++){
+			System.out.println(compass.retrieveHeadingDegrees());
+			try {
+				Thread.sleep(200);
+			} catch (InterruptedException e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+		}
+		
+//		detectEdges();
 
 		// try {
 		// testSensorStop(sensor);
@@ -44,91 +42,47 @@ public class AutoCar {
 	}
 
 	private static void detectEdges() {
-		Mat rgbImage = Imgcodecs.imread(path);
-		Mat imageGray = new Mat();
-		Mat imageGrayBlur = new Mat();
-		Mat imageCny = new Mat();
-
-		Imgproc.cvtColor(rgbImage, imageGray, Imgproc.COLOR_RGB2GRAY);
-		Imgproc.medianBlur(imageGray, imageGrayBlur, 5);
-
-//Create histogram ~3ms
-		MatOfFloat range = new MatOfFloat(0f, 256f);
-		MatOfInt histSize = new MatOfInt(256);
-		MatOfInt output = new MatOfInt();
-		List<Mat> images = new ArrayList<Mat>();
-		images.add(imageGrayBlur);
-		Imgproc.calcHist(images, new MatOfInt(0), new Mat(), output, histSize, range);
-		MatOfInt hist = new MatOfInt(CvType.CV_32S);
-		output.convertTo(hist, CvType.CV_32S);
-		int[] histInput = hist.toArray();
-		double median = ImageUtility.findMedian(histInput, imageGrayBlur.total());
-		
-//		int lower = (int) (.66 * median);
-//		int upper = (int) (1.33 * median);
-		int lower = (int) Math.max(0, (1.0 - SIGMA) * median);
-		int upper = (int) Math.min(255, (1.0 + SIGMA) * median);
-
-		Imgproc.Canny(imageGrayBlur, imageCny, lower, upper);
-		
-		ImageUtility.sideFill(imageCny);
+		Mat rgbImage = ImageCreation.retrieveOriginalImage();
+		Mat imageGray = ImageCreation.convertToGrayImage(rgbImage);
+		Mat imageGrayBlur = ImageCreation.blurImage(imageGray);
+		Mat imageCny = ImageCreation.createCannyImage(imageGrayBlur);
+		Mat imageSideFill = ImageCreation.sideFill(imageCny);
+		Mat imageErode = ImageCreation.erodeImage(imageSideFill);
 		
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(rgbImage), "RGB Image");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageGray), "Gray Image");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageGrayBlur), "Gray Blur Image");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageCny), "Canny Edge Detection Image");
-		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageCny), "Side Fill");
+		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageSideFill), "Side Fill");
+		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageErode), "Erode");
 	}
 	
 	private static void testSensorStop(UltraSonicSensor sensor) throws InterruptedException {
-		GpioHolder gpio = GpioProvision.provisionGpioPins();
-
 		Thread.sleep(10000);
 
-		// GO
-		gpio.getPin00().setPwm(100);
-		gpio.getPin27().setPwm(100);
-		gpio.getPin03().setPwm(100);
-		gpio.getPin29().setPwm(100);
+//		Move.goForward(gpio);
 
 		// waitForSensorFront(sensor, gpio.getTrigger(), gpio.getEcho());
-		waitForSensorFront(3, sensor, gpio.getTrigger(), gpio.getEcho());
+//		waitForSensorFront(3, sensor, gpio.getTrigger(), gpio.getEcho());
 
-		// STOP
-		gpio.getPin00().setPwm(0);
-		gpio.getPin27().setPwm(0);
-		gpio.getPin03().setPwm(0);
-		gpio.getPin29().setPwm(0);
+//		Move.stop(gpio);
 
-		// BACKWARDS
-		gpio.getPin02().setPwm(100);
-		gpio.getPin25().setPwm(100);
-		gpio.getPin04().setPwm(100);
-		gpio.getPin28().setPwm(100);
+//		Move.reverse(gpio);
 
 		Thread.sleep(1000);
 
-		gpio.getPin02().setPwm(0);
-		gpio.getPin25().setPwm(0);
-		gpio.getPin04().setPwm(0);
-		gpio.getPin28().setPwm(0);
+//		Move.stop(gpio);
 
 		// TURN AROUND
-		turnRight(gpio);
+//		turnRight(gpio);
 		Thread.sleep(4000);
 
-		gpio.getPin00().setPwm(0);
-		gpio.getPin25().setPwm(0);
-		gpio.getPin03().setPwm(0);
-		gpio.getPin28().setPwm(0);
+//		Move.stop(gpio);
 
-		turnLeft(gpio);
+//		turnLeft(gpio);
 		Thread.sleep(4000);
 
-		gpio.getPin02().setPwm(0);
-		gpio.getPin27().setPwm(0);
-		gpio.getPin04().setPwm(0);
-		gpio.getPin29().setPwm(0);
+//		Move.stop(gpio);
 	}
 
 	private static void turnRight(GpioHolder gpio) {
@@ -177,8 +131,7 @@ public class AutoCar {
 		gpio.getPin04().setPwm(100); // DF
 	}
 
-	private static void waitForSensorFront(double distanceLimit, UltraSonicSensor sensor, GpioPinDigitalOutput trigger,
-			GpioPinDigitalInput echo) {
+	private static void waitForSensorFront(double distanceLimit, UltraSonicSensor sensor, GpioPinDigitalOutput trigger, GpioPinDigitalInput echo) {
 		sensor.retrieveDistance(trigger, echo);
 	}
 
