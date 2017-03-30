@@ -22,8 +22,12 @@ public class Compass {
 	private final static byte SENSOR_CONTINUOUS_SAMPLING = 0x00;
 	private final static float SCALE = 0.92f; // Scale for gain
 	
-	private final static int X_OFFSET = -263;
-	private final static int Y_OFFSET = -70;
+//	private final static int X_OFFSET = -263;
+//	private final static int Y_OFFSET = -70;
+	private final static int X_OFFSET = -258;
+	private final static int Y_OFFSET = -48;
+//	private final static int X_OFFSET = -235;
+//	private final static int Y_OFFSET = -136;
 	private final static double DECLINATION = -2.37;
 
 	private I2CBus bus;
@@ -33,28 +37,15 @@ public class Compass {
 		try {
 			bus = I2CFactory.getInstance(I2CBus.BUS_1);
 			sensor = bus.getDevice(SENSOR_ADDRESS);
+        	sensor.write(0x00, SENSOR_SAMPLE_RATE);
+        	sensor.write(0x01, SENSOR_GAIN);
+			sensor.write(0x02, SENSOR_CONTINUOUS_SAMPLING);
 		} catch (UnsupportedBusNumberException | IOException e) {
 			e.printStackTrace();
 		}
 	}
 
 	public double retrieveHeadingDegrees() {
-//		byte[] i2cWriteInput = new byte[] { SENSOR_SAMPLE_RATE, SENSOR_GAIN, SENSOR_CONTINUOUS_SAMPLING };
-//		try {
-//			sensor.write(i2cWriteInput, 0, 3);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-        try {
-        	sensor.write(0x00, SENSOR_SAMPLE_RATE);
-        	sensor.write(0x01, SENSOR_GAIN);
-			sensor.write(0x02, SENSOR_CONTINUOUS_SAMPLING);
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-        
-
 		double xValue = (readWord(SENSOR_X_ADR) - X_OFFSET) * SCALE;
 		double yValue = (readWord(SENSOR_Y_ADR) - Y_OFFSET) * SCALE;
 		double zValue = readWord(SENSOR_Z_ADR) * SCALE;
@@ -63,38 +54,78 @@ public class Compass {
 		if (heading < 0)
 			heading += 2 * Math.PI;
 
-		heading = (heading * 180 / Math.PI) + DECLINATION;
-
-		return heading;
+//		heading = (heading * 180 / Math.PI) + DECLINATION;
+		return Math.toDegrees(heading);
 	}
 
 	private short readWord(int regAddress) {
-//		 byte high = 0;
-//		 byte low = 0;
-//		try {
-//			high = (byte)(sensor.read(regAddress) & 0xFF);
-//			low = (byte)(sensor.read(regAddress + 1) & 0xFF);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		System.out.println(high);
-//		System.out.println(low);
-//		 short reading = (short)(((high << 8) + low) & 0xFFFF);
-		
-		byte high = 0;
-		byte low = 0;
+		 byte high = 0;
+		 byte low = 0;
 		try {
-			high = (byte) sensor.read(regAddress);
-			low = (byte) sensor.read(regAddress + 1);
+			high = (byte)(sensor.read(regAddress) & 0xFF);
+			low = (byte)(sensor.read(regAddress + 1) & 0xFF);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
+		 short reading = (short)(((high << 8) + low) & 0xFFFF);
 		
-		short reading = (short) ((high << 8) + low); // Little endian
+//		byte high = 0;
+//		byte low = 0;
+//		try {
+//			high = (byte) sensor.read(regAddress);
+//			low = (byte) sensor.read(regAddress + 1);
+//		} catch (IOException e) {
+//			e.printStackTrace();
+//		}
+//		
+//		short reading = (short) ((high << 8) + low); // Little endian
 		
 		if (reading >= 0x8000)
 			reading = (short) -((0xFFFF - reading) + 1);
 		
 		return reading;
+	}
+	
+	public void calibrateCompass(int loopAmount, int pauseDuration){
+        PrintWriter w = null;
+        try {
+			w = new PrintWriter("output.txt", "UTF-8");
+		} catch (FileNotFoundException | UnsupportedEncodingException e1) {
+			e1.printStackTrace();
+		}
+        
+        int xMin = 0;
+        int xMax = 0;
+        int yMin = 0;
+        int yMax = 0;
+
+        for (int i = 0; i < loopAmount; i++){
+			double xValue = (readWord(SENSOR_X_ADR)) * SCALE;
+			double yValue = (readWord(SENSOR_Y_ADR)) * SCALE;
+			double zValue = readWord(SENSOR_Z_ADR) * SCALE;
+			
+			if ((int)xValue < xMin)
+				xMin = (int) xValue;
+			if ((int)yValue < yMin)
+				yMin = (int) yValue;
+			if ((int)xValue > xMax)
+				xMax = (int) xValue;
+			if ((int)yValue > yMax)
+				yMax = (int) yValue;
+			
+			try {
+				Thread.sleep(pauseDuration);
+			} catch (InterruptedException e) {
+				e.printStackTrace();
+			}
+        }
+        w.write("X-MIN: " + xMin + " : ");
+        w.write("X-MAX: " + xMax + " : ");
+        w.write("Y-MIN: " + yMin + " : ");
+        w.write("Y-MAX: " + yMax + " : ");
+        w.write("X Offset: " + (xMax + xMin)/2);
+        w.write(" : ");
+        w.write("Y Offset: " + (yMax + yMin)/2);
+        w.close();
 	}
 }

@@ -22,15 +22,16 @@ public class AutoCar {
 
 	public static void main(String[] args) {
 		Compass compass = new Compass();
-		for (int i = 0; i < 5000; i++){
+		for (int i = 0; i < 1000; i++){
 			System.out.println(compass.retrieveHeadingDegrees());
 			try {
-				Thread.sleep(200);
+				Thread.sleep(1000);
 			} catch (InterruptedException e) {
-				// TODO Auto-generated catch block
 				e.printStackTrace();
 			}
 		}
+		
+//			compass.calibrateCompass(1000, 100);
 		
 //		detectEdges();
 
