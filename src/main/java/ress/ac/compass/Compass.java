@@ -1,6 +1,5 @@
 package ress.ac.compass;
 
-import java.io.File;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.PrintWriter;
@@ -22,13 +21,13 @@ public class Compass {
 	private final static byte SENSOR_CONTINUOUS_SAMPLING = 0x00;
 	private final static float SCALE = 0.92f; // Scale for gain
 	
-//	private final static int X_OFFSET = -263;
-//	private final static int Y_OFFSET = -70;
-	private final static int X_OFFSET = -258;
-	private final static int Y_OFFSET = -48;
-//	private final static int X_OFFSET = -235;
-//	private final static int Y_OFFSET = -136;
-	private final static double DECLINATION = -2.37;
+//	private final static int X_OFFSET = -2;
+//	PRIVATE FINAL STATIC Int Y_OFFSET = -45;
+//	private final static int X_OFFSET = 235;
+//	private final static int Y_OFFSET = -412;
+	private final static int X_OFFSET = 117;
+	private final static int Y_OFFSET = -294;
+	private final static double DECLINATION = 0.045675267;
 
 	private I2CBus bus;
 	private I2CDevice sensor;
@@ -51,34 +50,27 @@ public class Compass {
 		double zValue = readWord(SENSOR_Z_ADR) * SCALE;
 		
 		double heading = Math.atan2(yValue, xValue);
+//		heading += DECLINATION;
 		if (heading < 0)
-			heading += 2 * Math.PI;
+            heading += (2 * Math.PI);
+   
+//	    if (heading > 2 * Math.PI)
+//	    	heading -= 2 * Math.PI;
 
-//		heading = (heading * 180 / Math.PI) + DECLINATION;
 		return Math.toDegrees(heading);
 	}
 
 	private short readWord(int regAddress) {
-		 byte high = 0;
-		 byte low = 0;
+		byte high = 0;
+		byte low = 0;
 		try {
-			high = (byte)(sensor.read(regAddress) & 0xFF);
-			low = (byte)(sensor.read(regAddress + 1) & 0xFF);
+			high = (byte) sensor.read(regAddress);
+			low = (byte) sensor.read(regAddress + 1);
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
-		 short reading = (short)(((high << 8) + low) & 0xFFFF);
 		
-//		byte high = 0;
-//		byte low = 0;
-//		try {
-//			high = (byte) sensor.read(regAddress);
-//			low = (byte) sensor.read(regAddress + 1);
-//		} catch (IOException e) {
-//			e.printStackTrace();
-//		}
-//		
-//		short reading = (short) ((high << 8) + low); // Little endian
+		short reading = (short) ((high << 8) + low); // Little endian
 		
 		if (reading >= 0x8000)
 			reading = (short) -((0xFFFF - reading) + 1);
@@ -98,11 +90,17 @@ public class Compass {
         int xMax = 0;
         int yMin = 0;
         int yMax = 0;
+        int zMin = 0;
+        int zMax = 0;
+        
+        int xScale = 0;
+        int yScale = 0;
+        int zScale = 0;
 
         for (int i = 0; i < loopAmount; i++){
 			double xValue = (readWord(SENSOR_X_ADR)) * SCALE;
 			double yValue = (readWord(SENSOR_Y_ADR)) * SCALE;
-			double zValue = readWord(SENSOR_Z_ADR) * SCALE;
+			double zValue = (readWord(SENSOR_Z_ADR)) * SCALE;
 			
 			if ((int)xValue < xMin)
 				xMin = (int) xValue;
@@ -112,13 +110,23 @@ public class Compass {
 				xMax = (int) xValue;
 			if ((int)yValue > yMax)
 				yMax = (int) yValue;
+			if ((int)zValue < zMin)
+				zMin = (int) zValue;
+			if ((int)zValue > zMax)
+				zMax = (int) xValue;
 			
 			try {
 				Thread.sleep(pauseDuration);
 			} catch (InterruptedException e) {
 				e.printStackTrace();
 			}
+			
         }
+//		int fieldValue = (xMax + yMax + zMax) / 3;
+//		xScale = fieldValue / xMax;
+//		yScale = fieldValue / yMax;
+//		zScale = fieldValue / zMax;
+		
         w.write("X-MIN: " + xMin + " : ");
         w.write("X-MAX: " + xMax + " : ");
         w.write("Y-MIN: " + yMin + " : ");
@@ -126,6 +134,14 @@ public class Compass {
         w.write("X Offset: " + (xMax + xMin)/2);
         w.write(" : ");
         w.write("Y Offset: " + (yMax + yMin)/2);
+        w.write(" : ");
+        w.write("Z Offset: " + (zMax + zMin)/2);
+//        w.write(" : ");
+//        w.write("X Scale: " + (xScale));
+//        w.write(" : ");
+//        w.write("Y Scale: " + (yScale));
+//        w.write(" : ");
+//        w.write("Z Scale: " + (zScale));
         w.close();
 	}
 }

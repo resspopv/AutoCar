@@ -1,45 +1,57 @@
 package ress.ac.main;
 
-import org.opencv.core.Core;
+import java.io.IOException;
+
 import org.opencv.core.Mat;
 
 import com.pi4j.io.gpio.GpioPinDigitalInput;
 import com.pi4j.io.gpio.GpioPinDigitalOutput;
 
-import ress.ac.compass.Compass;
 import ress.ac.gpio.GpioHolder;
+import ress.ac.gpio.GpioProvision;
 import ress.ac.image.ImageCreation;
+import ress.ac.imu.IMU;
+import ress.ac.movement.Move;
 
 public class AutoCar {
 
-//	private final static GpioHolder gpio = GpioProvision.provisionGpioPins();
+	private final static GpioHolder gpio = GpioProvision.provisionGpioPins();
 	private static UltraSonicSensor sensor = new UltraSonicSensor();
 
-	static {
-		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
-	}
-	
+//	static {
+//		System.loadLibrary(Core.NATIVE_LIBRARY_NAME);
+//	}
 
-	public static void main(String[] args) {
-		Compass compass = new Compass();
-		for (int i = 0; i < 1000; i++){
-			System.out.println(compass.retrieveHeadingDegrees());
-			try {
-				Thread.sleep(1000);
-			} catch (InterruptedException e) {
-				e.printStackTrace();
-			}
-		}
-		
+
+	public static void main(String[] args) throws IOException {
+//	   Process p = Runtime.getRuntime().exec("python btrun.py");
+//       BufferedReader reader = new BufferedReader(new InputStreamReader(p.getInputStream()));
+//       String line;
+//       while ((line = reader.readLine()) != null)
+//    	   System.out.println(line);
+
+//		Compass compass = new Compass();
+//		for (int i = 0; i < 1000; i++){
+//			System.out.println(compass.retrieveHeadingDegrees());
+//			try {
+//				Thread.sleep(1000);
+//			} catch (InterruptedException e) {
+//				e.printStackTrace();
+//			}
+//		}
+
 //			compass.calibrateCompass(1000, 100);
-		
+
 //		detectEdges();
 
-		// try {
-		// testSensorStop(sensor);
-		// } catch (InterruptedException e) {
-		// e.printStackTrace();
-		// }
+//		IMU imu = new IMU();
+//		imu.run();
+
+		 try {
+		 testSensorStop(sensor);
+	 } catch (InterruptedException e) {
+		 e.printStackTrace();
+	 }
 	}
 
 	private static void detectEdges() {
@@ -49,7 +61,7 @@ public class AutoCar {
 		Mat imageCny = ImageCreation.createCannyImage(imageGrayBlur);
 		Mat imageSideFill = ImageCreation.sideFill(imageCny);
 		Mat imageErode = ImageCreation.erodeImage(imageSideFill);
-		
+
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(rgbImage), "RGB Image");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageGray), "Gray Image");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageGrayBlur), "Gray Blur Image");
@@ -57,33 +69,33 @@ public class AutoCar {
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageSideFill), "Side Fill");
 		ImageUtils.displayImage(ImageUtils.toBufferedImage(imageErode), "Erode");
 	}
-	
+
 	private static void testSensorStop(UltraSonicSensor sensor) throws InterruptedException {
 		Thread.sleep(10000);
 
-//		Move.goForward(gpio);
+		Move.goForward(gpio);
 
 		// waitForSensorFront(sensor, gpio.getTrigger(), gpio.getEcho());
-//		waitForSensorFront(3, sensor, gpio.getTrigger(), gpio.getEcho());
+		waitForSensorFront(3, sensor, gpio.getTrigger(), gpio.getEcho());
 
-//		Move.stop(gpio);
+		Move.stop(gpio);
 
-//		Move.reverse(gpio);
+		Move.reverse(gpio);
 
 		Thread.sleep(1000);
 
-//		Move.stop(gpio);
+		Move.stop(gpio);
 
 		// TURN AROUND
-//		turnRight(gpio);
+		turnRight(gpio);
 		Thread.sleep(4000);
 
-//		Move.stop(gpio);
+		Move.stop(gpio);
 
-//		turnLeft(gpio);
+		turnLeft(gpio);
 		Thread.sleep(4000);
 
-//		Move.stop(gpio);
+		Move.stop(gpio);
 	}
 
 	private static void turnRight(GpioHolder gpio) {
